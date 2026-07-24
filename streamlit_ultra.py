@@ -1995,7 +1995,403 @@ def display_correct_scores(
         )
     )
 
+# ============================================================
+# PORTAL PUBLISHING CENTRE
+# ============================================================
 
+def display_publishing_centre(
+    output: Dict[str, Any],
+):
+    st.divider()
+
+    st.markdown(
+        """
+        <div class="section-label">
+            Client Portal Publishing
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.header("🚀 VIP Portal Publishing Centre")
+
+    st.markdown(
+        """
+        <div class="glass-card">
+            Select what clients can see, assign tiers,
+            edit commentary, and publish directly to
+            the VIP Match Centre.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    catalogue = publisher.publication_catalogue(
+        output
+    )
+
+    if not catalogue:
+        st.warning(
+            "No recommendation or correct-score "
+            "data are available to publish."
+        )
+        return
+
+    match_id = publisher.make_match_id(
+        output
+    )
+
+    match = output.get(
+        "match",
+        {},
+    )
+
+    st.caption(
+        f"Portal Match ID: `{match_id}`"
+    )
+
+    # --------------------------------------------------------
+    # Match presentation
+    # --------------------------------------------------------
+
+    with st.container(border=True):
+        st.subheader("⚽ Match presentation")
+
+        match_status = st.selectbox(
+            "Portal status",
+            options=[
+                "published",
+                "draft",
+            ],
+            index=0,
+            key=f"portal_status_{match_id}",
+            help=(
+                "Published matches appear in the "
+                "client portal. Draft matches remain "
+                "hidden."
+            ),
+        )
+
+        default_direction = (
+            publisher.model_direction_text(
+                output
+            )
+        )
+
+        model_direction = st.text_input(
+            "Model direction",
+            value=default_direction,
+            key=(
+                f"portal_direction_"
+                f"{match_id}"
+            ),
+            help=(
+                "Short direction shown on the "
+                "match card."
+            ),
+        )
+
+        default_summary = (
+            publisher.model_summary_text(
+                output
+            )
+        )
+
+        model_summary = st.text_area(
+            "Client match summary",
+            value=default_summary,
+            height=110,
+            key=(
+                f"portal_summary_"
+                f"{match_id}"
+            ),
+        )
+
+        st.info(
+            "Top score reference: "
+            + (
+                publisher.top_scores_text(
+                    output
+                )
+                or "Not available"
+            )
+        )
+
+    # --------------------------------------------------------
+    # Publication editor
+    # --------------------------------------------------------
+
+    editor_df = pd.DataFrame(
+        catalogue
+    )
+
+    for column in [
+        "odds",
+        "conservative_hit",
+        "median_hit",
+    ]:
+        if column in editor_df.columns:
+            editor_df[column] = (
+                pd.to_numeric(
+                    editor_df[column],
+                    errors="coerce",
+                )
+            )
+
+    st.subheader("🎛️ Select client content")
+
+    st.caption(
+        "Official picks are selected automatically. "
+        "You may also publish alternatives and 波膽."
+    )
+
+    edited_df = st.data_editor(
+        editor_df,
+        hide_index=True,
+        use_container_width=True,
+        num_rows="fixed",
+        key=f"portal_editor_{match_id}",
+        disabled=[
+            "source_type",
+            "source_id",
+            "market",
+            "odds",
+            "conservative_hit",
+            "median_hit",
+            "status",
+        ],
+        column_config={
+            # Internal metadata stays hidden.
+            "source_type": None,
+            "source_id": None,
+
+            "publish": st.column_config.CheckboxColumn(
+                "Publish",
+                help=(
+                    "Tick to display this item "
+                    "in the client portal."
+                ),
+                default=False,
+            ),
+
+            "tier": st.column_config.SelectboxColumn(
+                "Client tier",
+                options=[
+                    "OFFICIAL",
+                    "ALTERNATIVE",
+                    "CORRECT_SCORE",
+                ],
+                required=True,
+                width="medium",
+            ),
+
+            "rank": st.column_config.NumberColumn(
+                "Rank",
+                min_value=0,
+                max_value=99,
+                step=1,
+                format="%d",
+                width="small",
+            ),
+
+            "title": st.column_config.TextColumn(
+                "Client title",
+                required=True,
+                width="large",
+            ),
+
+            "market": st.column_config.TextColumn(
+                "Market",
+                width="small",
+            ),
+
+            "odds": st.column_config.NumberColumn(
+                "Odds",
+                format="%.3f",
+                width="small",
+            ),
+
+            "conservative_hit": (
+                st.column_config.NumberColumn(
+                    "Conservative hit",
+                    format="percent",
+                    width="small",
+                )
+            ),
+
+            "median_hit": (
+                st.column_config.NumberColumn(
+                    "Median hit",
+                    format="percent",
+                    width="small",
+                )
+            ),
+
+            "stars": st.column_config.NumberColumn(
+                "Stars",
+                help="Client-facing confidence stars.",
+                min_value=1,
+                max_value=5,
+                step=1,
+                format="%d ⭐",
+                width="small",
+            ),
+
+            "is_heavy": (
+                st.column_config.CheckboxColumn(
+                    "🔥 重心",
+                    help=(
+                        "Mark as a highlighted "
+                        "heavy recommendation."
+                    ),
+                    default=False,
+                    width="small",
+                )
+            ),
+
+            "commentary": (
+                st.column_config.TextColumn(
+                    "雨姐短評",
+                    help=(
+                        "Editable client-facing "
+                        "commentary."
+                    ),
+                    width="large",
+                )
+            ),
+
+            "status": st.column_config.TextColumn(
+                "Ultra status",
+                width="medium",
+            ),
+        },
+    )
+
+    selected_count = int(
+        edited_df["publish"]
+        .fillna(False)
+        .astype(bool)
+        .sum()
+    )
+
+    first, second, third = st.columns(3)
+
+    first.metric(
+        "Selected items",
+        selected_count,
+    )
+
+    second.metric(
+        "Official selected",
+        int(
+            (
+                edited_df["publish"]
+                .fillna(False)
+                .astype(bool)
+                & (
+                    edited_df["tier"]
+                    == "OFFICIAL"
+                )
+            ).sum()
+        ),
+    )
+
+    third.metric(
+        "Alternatives selected",
+        int(
+            (
+                edited_df["publish"]
+                .fillna(False)
+                .astype(bool)
+                & (
+                    edited_df["tier"]
+                    == "ALTERNATIVE"
+                )
+            ).sum()
+        ),
+    )
+
+    # --------------------------------------------------------
+    # Confirmation and publishing
+    # --------------------------------------------------------
+
+    confirm_publish = st.checkbox(
+        "I have checked the titles, tiers, "
+        "commentary and handicap directions.",
+        key=f"portal_confirm_{match_id}",
+    )
+
+    publish_clicked = st.button(
+        "📡 Publish Selected Items to VIP Portal",
+        type="primary",
+        use_container_width=True,
+        disabled=(
+            not confirm_publish
+            or selected_count == 0
+        ),
+        key=f"portal_publish_{match_id}",
+    )
+
+    if publish_clicked:
+        try:
+            editor_rows = (
+                edited_df
+                .where(
+                    pd.notnull(edited_df),
+                    None,
+                )
+                .to_dict(
+                    orient="records"
+                )
+            )
+
+            bundle = (
+                publisher.build_publish_bundle(
+                    output=output,
+                    editor_rows=editor_rows,
+                    match_status=match_status,
+                    model_direction=(
+                        model_direction
+                    ),
+                    model_summary=(
+                        model_summary
+                    ),
+                )
+            )
+
+            with st.spinner(
+                "Publishing to the VIP Portal..."
+            ):
+                result = publisher.publish_bundle(
+                    api_url=(
+                        st.secrets[
+                            "portal_api"
+                        ]["url"]
+                    ),
+                    api_token=(
+                        st.secrets[
+                            "portal_api"
+                        ]["token"]
+                    ),
+                    bundle=bundle,
+                )
+
+            st.success(
+                "✅ Match and recommendations "
+                "published successfully."
+            )
+
+            st.session_state[
+                "last_portal_publish_result"
+            ] = result
+
+            st.json(result)
+
+        except Exception as error:
+            st.error(
+                f"Publication failed: {error}"
+            )
+            st.exception(error)
 # ============================================================
 # 9. Sidebar
 # ============================================================
