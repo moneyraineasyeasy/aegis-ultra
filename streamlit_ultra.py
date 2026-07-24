@@ -3323,11 +3323,13 @@ if "ultra_result" in st.session_state:
 
     st.divider()
 
-    display_correct_scores(output)
+display_correct_scores(output)
 
-    st.divider()
+display_publishing_centre(output)
 
-    runtime = output.get(
+st.divider()
+
+runtime = output.get(
         "runtime",
         {},
     )
