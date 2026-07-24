@@ -2088,25 +2088,6 @@ with st.sidebar:
 
     st.markdown("---")
 
-    if st.button(
-        "🗑️ Clear current analysis",
-        use_container_width=True,
-    ):
-        for key in [
-            "ultra_result",
-            "ultra_input",
-            "ultra_analysis_hash",
-        ]:
-            st.session_state.pop(
-                key,
-                None,
-            )
-
-        st.success(
-            "Current analysis cleared."
-        )
-
-
 # ============================================================
 # 10. Input interface
 # ============================================================
