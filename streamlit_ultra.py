@@ -1,22 +1,21 @@
 from __future__ import annotations
 
-import os
-
-import requests
-
-os.environ["ARROW_DEFAULT_MEMORY_POOL"] = "system"
-
 import hashlib
 import json
 import math
+import os
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+os.environ["ARROW_DEFAULT_MEMORY_POOL"] = "system"
+
 import pandas as pd
+import requests
 import streamlit as st
 
 import aegis_ultra_engine as aegis
 import ultra_publisher as publisher
+
 
 # ============================================================
 # AEGIS ULTRA V1.1 — STREAMLIT COMMAND CENTER
@@ -41,126 +40,129 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    /* Main application */
+    * {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
     .stApp {
         background:
             radial-gradient(
-                circle at 15% 10%,
-                rgba(74, 108, 247, 0.12),
-                transparent 26%
+                circle at 10% 5%,
+                rgba(78, 100, 255, 0.14),
+                transparent 28%
             ),
             radial-gradient(
-                circle at 85% 5%,
-                rgba(161, 72, 255, 0.10),
-                transparent 24%
+                circle at 90% 7%,
+                rgba(151, 70, 255, 0.12),
+                transparent 25%
             ),
             linear-gradient(
                 180deg,
-                #090b12 0%,
-                #0d1019 48%,
-                #090b12 100%
+                #080a12 0%,
+                #0c0f18 48%,
+                #080a12 100%
             );
     }
 
     .block-container {
         max-width: 1500px;
-        padding-top: 1.4rem;
-        padding-bottom: 4rem;
+        padding-top: 1.3rem;
+        padding-bottom: 5rem;
     }
 
-    /* Sidebar */
     [data-testid="stSidebar"] {
         background:
             linear-gradient(
                 180deg,
-                rgba(18, 21, 34, 0.98),
-                rgba(10, 12, 20, 0.98)
+                rgba(17, 20, 32, 0.99),
+                rgba(8, 10, 17, 0.99)
             );
-        border-right: 1px solid rgba(255, 255, 255, 0.08);
+        border-right:
+            1px solid rgba(255, 255, 255, 0.07);
     }
 
-    /* Hero */
     .ultra-hero {
         padding: 2rem 2.2rem;
-        margin-bottom: 1.35rem;
-        border-radius: 24px;
+        margin-bottom: 1.4rem;
+        border-radius: 25px;
         background:
             linear-gradient(
                 120deg,
-                rgba(76, 94, 255, 0.22),
-                rgba(143, 69, 255, 0.16),
+                rgba(74, 93, 255, 0.24),
+                rgba(139, 70, 255, 0.17),
                 rgba(0, 214, 170, 0.10)
             );
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        border:
+            1px solid rgba(255, 255, 255, 0.12);
         box-shadow:
-            0 18px 60px rgba(0, 0, 0, 0.35),
+            0 20px 65px rgba(0, 0, 0, 0.36),
             inset 0 1px 0 rgba(255, 255, 255, 0.08);
-        backdrop-filter: blur(16px);
-    }
-
-    .ultra-title {
-        margin: 0;
-        color: #ffffff;
-        font-size: 3rem;
-        font-weight: 850;
-        letter-spacing: -0.055em;
-        line-height: 1.05;
-    }
-
-    .ultra-subtitle {
-        margin-top: 0.75rem;
-        margin-bottom: 0;
-        color: rgba(255, 255, 255, 0.72);
-        font-size: 1.05rem;
-        line-height: 1.55;
+        backdrop-filter: blur(18px);
     }
 
     .ultra-badge {
         display: inline-block;
-        padding: 0.35rem 0.7rem;
-        margin-bottom: 0.85rem;
+        padding: 0.38rem 0.76rem;
+        margin-bottom: 0.9rem;
         border-radius: 999px;
-        color: #bfffea;
-        background: rgba(0, 213, 163, 0.13);
-        border: 1px solid rgba(0, 213, 163, 0.28);
-        font-size: 0.78rem;
-        font-weight: 750;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-    }
-
-    /* Section headers */
-    .section-label {
-        margin-top: 1.1rem;
-        margin-bottom: 0.85rem;
-        color: rgba(255, 255, 255, 0.55);
-        font-size: 0.78rem;
+        color: #baffea;
+        background: rgba(0, 214, 163, 0.13);
+        border: 1px solid rgba(0, 214, 163, 0.30);
+        font-size: 0.76rem;
         font-weight: 800;
-        letter-spacing: 0.12em;
+        letter-spacing: 0.09em;
         text-transform: uppercase;
     }
 
-    /* Cards */
+    .ultra-title {
+        margin: 0;
+        color: white;
+        font-size: 3.05rem;
+        font-weight: 900;
+        letter-spacing: -0.055em;
+        line-height: 1.04;
+    }
+
+    .ultra-subtitle {
+        margin-top: 0.8rem;
+        margin-bottom: 0;
+        color: rgba(255, 255, 255, 0.70);
+        font-size: 1.05rem;
+        line-height: 1.55;
+    }
+
+    .section-label {
+        margin-top: 1.2rem;
+        margin-bottom: 0.75rem;
+        color: rgba(255, 255, 255, 0.50);
+        font-size: 0.76rem;
+        font-weight: 850;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+    }
+
     .glass-card {
         padding: 1.15rem 1.3rem;
-        margin: 0.5rem 0;
+        margin: 0.55rem 0;
         border-radius: 18px;
+        color: rgba(255, 255, 255, 0.78);
         background: rgba(255, 255, 255, 0.045);
         border: 1px solid rgba(255, 255, 255, 0.09);
         box-shadow: 0 10px 35px rgba(0, 0, 0, 0.22);
     }
 
     .official-banner {
-        padding: 0.65rem 0.9rem;
+        padding: 0.68rem 0.95rem;
         border-radius: 12px;
         color: #caffef;
         background: rgba(0, 214, 163, 0.13);
-        border: 1px solid rgba(0, 214, 163, 0.26);
-        font-weight: 750;
+        border: 1px solid rgba(0, 214, 163, 0.27);
+        font-weight: 800;
     }
 
     .reference-banner {
-        padding: 0.65rem 0.9rem;
+        padding: 0.68rem 0.95rem;
         border-radius: 12px;
         color: #ffe9b2;
         background: rgba(255, 187, 66, 0.11);
@@ -168,11 +170,26 @@ st.markdown(
     }
 
     .danger-banner {
-        padding: 0.65rem 0.9rem;
+        padding: 0.68rem 0.95rem;
         border-radius: 12px;
         color: #ffd1d1;
         background: rgba(255, 73, 92, 0.12);
         border: 1px solid rgba(255, 73, 92, 0.25);
+    }
+
+    .portal-banner {
+        padding: 1.3rem 1.4rem;
+        margin: 0.7rem 0 1.2rem 0;
+        border-radius: 20px;
+        background:
+            linear-gradient(
+                120deg,
+                rgba(0, 214, 163, 0.14),
+                rgba(75, 104, 255, 0.12)
+            );
+        border: 1px solid rgba(83, 237, 192, 0.22);
+        box-shadow: 0 12px 42px rgba(0, 0, 0, 0.24);
+        color: rgba(255, 255, 255, 0.82);
     }
 
     .ah-preview {
@@ -205,7 +222,7 @@ st.markdown(
     .score-value {
         color: white;
         font-size: 2.25rem;
-        font-weight: 850;
+        font-weight: 900;
         letter-spacing: -0.04em;
     }
 
@@ -213,10 +230,9 @@ st.markdown(
         margin-top: 0.45rem;
         color: #cfc5ff;
         font-size: 1rem;
-        font-weight: 700;
+        font-weight: 750;
     }
 
-    /* Metrics */
     [data-testid="stMetric"] {
         padding: 1rem 1.05rem;
         border-radius: 16px;
@@ -226,11 +242,10 @@ st.markdown(
     }
 
     [data-testid="stMetricValue"] {
-        font-weight: 800;
+        font-weight: 850;
         letter-spacing: -0.035em;
     }
 
-    /* Inputs */
     [data-baseweb="input"] > div,
     [data-baseweb="textarea"] > div,
     [data-baseweb="select"] > div {
@@ -238,22 +253,11 @@ st.markdown(
         border-color: rgba(255, 255, 255, 0.10);
     }
 
-    textarea,
-    input {
-        font-family:
-            Inter,
-            -apple-system,
-            BlinkMacSystemFont,
-            "Segoe UI",
-            sans-serif !important;
-    }
-
-    /* Buttons */
     .stButton > button,
     .stDownloadButton > button {
         border-radius: 13px;
         min-height: 3rem;
-        font-weight: 750;
+        font-weight: 780;
         border: 1px solid rgba(255, 255, 255, 0.12);
         transition:
             transform 0.15s ease,
@@ -266,7 +270,6 @@ st.markdown(
         box-shadow: 0 10px 28px rgba(0, 0, 0, 0.24);
     }
 
-    /* Tabs */
     .stTabs [data-baseweb="tab-list"] {
         gap: 0.55rem;
         padding: 0.35rem;
@@ -281,14 +284,13 @@ st.markdown(
         font-weight: 700;
     }
 
-    /* Dataframes */
-    [data-testid="stDataFrame"] {
+    [data-testid="stDataFrame"],
+    [data-testid="stDataEditor"] {
         border-radius: 16px;
         overflow: hidden;
         border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
-    /* Dividers */
     hr {
         border-color: rgba(255, 255, 255, 0.08);
     }
@@ -319,8 +321,8 @@ st.markdown(
         </h1>
         <p class="ultra-subtitle">
             Target-line-out sharp-market reconstruction,
-            conservative hit probability and contradiction-safe
-            official recommendations.
+            conservative hit probability, contradiction-safe
+            recommendations and direct VIP Portal publishing.
         </p>
     </div>
     """,
@@ -333,11 +335,7 @@ st.markdown(
 # ============================================================
 
 def tokenize(text: Any) -> List[str]:
-    return (
-        str(text)
-        .replace(",", " ")
-        .split()
-    )
+    return str(text).replace(",", " ").split()
 
 
 def is_skip_token(value: Any) -> bool:
@@ -376,9 +374,7 @@ def format_probability(
     if value is None:
         return "N/A"
 
-    return (
-        f"{value * 100.0:.{decimals}f}%"
-    )
+    return f"{value * 100.0:.{decimals}f}%"
 
 
 def format_percentage_points(
@@ -390,9 +386,7 @@ def format_percentage_points(
     if value is None:
         return "N/A"
 
-    return (
-        f"{value * 100.0:+.{decimals}f} pp"
-    )
+    return f"{value * 100.0:+.{decimals}f} pp"
 
 
 def format_odds(
@@ -416,9 +410,7 @@ def format_ev(
     if value is None:
         return "N/A"
 
-    return (
-        f"{value * 100.0:+.{decimals}f}%"
-    )
+    return f"{value * 100.0:+.{decimals}f}%"
 
 
 def probability_value(
@@ -471,10 +463,7 @@ def parse_required_triplet(
             f"{label}: enter exactly three odds."
         )
 
-    if any(
-        is_skip_token(token)
-        for token in tokens
-    ):
+    if any(is_skip_token(token) for token in tokens):
         raise ValueError(
             f"{label}: all three odds are required."
         )
@@ -518,17 +507,11 @@ def parse_optional_triplet(
             values.append(
                 aegis.validate_odds(
                     token,
-                    (
-                        f"{label} "
-                        f"#{index + 1}"
-                    ),
+                    f"{label} #{index + 1}",
                 )
             )
 
-    if all(
-        value is None
-        for value in values
-    ):
+    if all(value is None for value in values):
         return None
 
     return {
@@ -558,23 +541,18 @@ def parse_sharp_ah(
 
         if len(tokens) != 3:
             raise ValueError(
-                f"{label} row {row_number}: "
-                "expected HOME_line HOME_odds "
-                "AWAY_odds."
+                f"{label} row {row_number}: expected "
+                "HOME_line HOME_odds AWAY_odds."
             )
 
         line = aegis.validate_quarter_line(
             tokens[0],
-            (
-                f"{label} row "
-                f"{row_number} line"
-            ),
+            f"{label} row {row_number} line",
         )
 
         if line in seen_lines:
             raise ValueError(
-                f"{label}: duplicate line "
-                f"{line:g}."
+                f"{label}: duplicate line {line:g}."
             )
 
         if (
@@ -592,17 +570,11 @@ def parse_sharp_ah(
             "line": line,
             "home": aegis.validate_odds(
                 tokens[1],
-                (
-                    f"{label} row "
-                    f"{row_number} home"
-                ),
+                f"{label} row {row_number} home",
             ),
             "away": aegis.validate_odds(
                 tokens[2],
-                (
-                    f"{label} row "
-                    f"{row_number} away"
-                ),
+                f"{label} row {row_number} away",
             ),
         })
 
@@ -629,23 +601,18 @@ def parse_sharp_ou(
 
         if len(tokens) != 3:
             raise ValueError(
-                f"{label} row {row_number}: "
-                "expected line OVER_odds "
-                "UNDER_odds."
+                f"{label} row {row_number}: expected "
+                "line OVER_odds UNDER_odds."
             )
 
         line = aegis.validate_quarter_line(
             tokens[0],
-            (
-                f"{label} row "
-                f"{row_number} line"
-            ),
+            f"{label} row {row_number} line",
         )
 
         if line in seen_lines:
             raise ValueError(
-                f"{label}: duplicate line "
-                f"{line:g}."
+                f"{label}: duplicate line {line:g}."
             )
 
         if (
@@ -663,17 +630,11 @@ def parse_sharp_ou(
             "line": line,
             "over": aegis.validate_odds(
                 tokens[1],
-                (
-                    f"{label} row "
-                    f"{row_number} over"
-                ),
+                f"{label} row {row_number} over",
             ),
             "under": aegis.validate_odds(
                 tokens[2],
-                (
-                    f"{label} row "
-                    f"{row_number} under"
-                ),
+                f"{label} row {row_number} under",
             ),
         })
 
@@ -700,23 +661,18 @@ def parse_hkjc_ah(
 
         if len(tokens) != 3:
             raise ValueError(
-                f"{label} row {row_number}: "
-                "expected HOME_line HOME_odds "
-                "AWAY_odds."
+                f"{label} row {row_number}: expected "
+                "HOME_line HOME_odds AWAY_odds."
             )
 
         line = aegis.validate_quarter_line(
             tokens[0],
-            (
-                f"{label} row "
-                f"{row_number} line"
-            ),
+            f"{label} row {row_number} line",
         )
 
         if line in seen_lines:
             raise ValueError(
-                f"{label}: duplicate line "
-                f"{line:g}."
+                f"{label}: duplicate line {line:g}."
             )
 
         seen_lines.add(line)
@@ -726,10 +682,7 @@ def parse_hkjc_ah(
             if is_skip_token(tokens[1])
             else aegis.validate_odds(
                 tokens[1],
-                (
-                    f"{label} row "
-                    f"{row_number} home"
-                ),
+                f"{label} row {row_number} home",
             )
         )
 
@@ -738,17 +691,11 @@ def parse_hkjc_ah(
             if is_skip_token(tokens[2])
             else aegis.validate_odds(
                 tokens[2],
-                (
-                    f"{label} row "
-                    f"{row_number} away"
-                ),
+                f"{label} row {row_number} away",
             )
         )
 
-        if (
-            home_odds is None
-            and away_odds is None
-        ):
+        if home_odds is None and away_odds is None:
             raise ValueError(
                 f"{label} row {row_number}: "
                 "enter at least one price."
@@ -783,23 +730,18 @@ def parse_hkjc_ou(
 
         if len(tokens) != 3:
             raise ValueError(
-                f"{label} row {row_number}: "
-                "expected line OVER_odds "
-                "UNDER_odds."
+                f"{label} row {row_number}: expected "
+                "line OVER_odds UNDER_odds."
             )
 
         line = aegis.validate_quarter_line(
             tokens[0],
-            (
-                f"{label} row "
-                f"{row_number} line"
-            ),
+            f"{label} row {row_number} line",
         )
 
         if line in seen_lines:
             raise ValueError(
-                f"{label}: duplicate line "
-                f"{line:g}."
+                f"{label}: duplicate line {line:g}."
             )
 
         seen_lines.add(line)
@@ -809,10 +751,7 @@ def parse_hkjc_ou(
             if is_skip_token(tokens[1])
             else aegis.validate_odds(
                 tokens[1],
-                (
-                    f"{label} row "
-                    f"{row_number} over"
-                ),
+                f"{label} row {row_number} over",
             )
         )
 
@@ -821,17 +760,11 @@ def parse_hkjc_ou(
             if is_skip_token(tokens[2])
             else aegis.validate_odds(
                 tokens[2],
-                (
-                    f"{label} row "
-                    f"{row_number} under"
-                ),
+                f"{label} row {row_number} under",
             )
         )
 
-        if (
-            over_odds is None
-            and under_odds is None
-        ):
+        if over_odds is None and under_odds is None:
             raise ValueError(
                 f"{label} row {row_number}: "
                 "enter at least one price."
@@ -847,7 +780,7 @@ def parse_hkjc_ou(
 
 
 # ============================================================
-# 4. Manual input builder
+# 4. Build manual input
 # ============================================================
 
 def build_manual_input(
@@ -889,29 +822,19 @@ def build_manual_input(
             "Home and away teams are required."
         )
 
-    if (
-        home_name.casefold()
-        == away_name.casefold()
-    ):
+    if home_name.casefold() == away_name.casefold():
         raise ValueError(
             "Home and away teams cannot match."
         )
 
-    primary_key = (
-        str(primary_key)
-        .strip()
-        .lower()
-    )
+    primary_key = str(
+        primary_key
+    ).strip().lower()
 
     primary_title = (
         str(primary_title).strip()
         or primary_key
     )
-
-    if not primary_key:
-        raise ValueError(
-            "Primary source key is required."
-        )
 
     primary_ah_rows = parse_sharp_ah(
         primary_ah,
@@ -936,9 +859,7 @@ def build_manual_input(
     sharp_books = [{
         "key": primary_key,
         "title": primary_title,
-        "timestamp": (
-            str(snapshot_time).strip()
-        ),
+        "timestamp": str(snapshot_time).strip(),
         "markets": {
             "1X2": parse_required_triplet(
                 primary_1x2,
@@ -950,11 +871,9 @@ def build_manual_input(
     }]
 
     if enable_second_source:
-        second_key = (
-            str(second_key)
-            .strip()
-            .lower()
-        )
+        second_key = str(
+            second_key
+        ).strip().lower()
 
         second_title = (
             str(second_title).strip()
@@ -981,24 +900,18 @@ def build_manual_input(
             f"{second_title} O/U",
         )
 
-        if not second_ah_rows:
+        if not second_ah_rows or not second_ou_rows:
             raise ValueError(
-                "Enter at least one second-source "
-                "AH line."
-            )
-
-        if not second_ou_rows:
-            raise ValueError(
-                "Enter at least one second-source "
-                "O/U line."
+                "Second source requires at least "
+                "one AH and one O/U line."
             )
 
         sharp_books.append({
             "key": second_key,
             "title": second_title,
-            "timestamp": (
-                str(snapshot_time).strip()
-            ),
+            "timestamp": str(
+                snapshot_time
+            ).strip(),
             "markets": {
                 "1X2": parse_required_triplet(
                     second_1x2,
@@ -1012,15 +925,13 @@ def build_manual_input(
     hkjc_markets = []
     counter = 1
 
-    hkjc_1x2_values = (
-        parse_optional_triplet(
-            hkjc_1x2,
-            "HKJC 1X2",
-        )
+    hkjc_1x2_values = parse_optional_triplet(
+        hkjc_1x2,
+        "HKJC 1X2",
     )
 
     if hkjc_1x2_values is not None:
-        one_x_two_specs = [
+        specifications = [
             (
                 "home",
                 "HOME",
@@ -1038,9 +949,7 @@ def build_manual_input(
             ),
         ]
 
-        for key, selection, label in (
-            one_x_two_specs
-        ):
+        for key, selection, label in specifications:
             odds = hkjc_1x2_values[key]
 
             if odds is None:
@@ -1146,13 +1055,13 @@ def build_manual_input(
             ),
             "home": home_name,
             "away": away_name,
-            "competition": (
-                str(competition).strip()
-            ),
+            "competition": str(
+                competition
+            ).strip(),
             "kickoff": str(kickoff).strip(),
-            "snapshot_time": (
-                str(snapshot_time).strip()
-            ),
+            "snapshot_time": str(
+                snapshot_time
+            ).strip(),
         },
         "sharp_books": sharp_books,
         "hkjc_markets": hkjc_markets,
@@ -1170,7 +1079,9 @@ def build_manual_input(
                 maximum_recommendations
             ),
             "minimum_official_hit_probability": (
-                float(minimum_official_hit_pct)
+                float(
+                    minimum_official_hit_pct
+                )
                 / 100.0
             ),
             "correct_score_count": int(
@@ -1272,14 +1183,13 @@ def execute_engine(
 
 
 # ============================================================
-# 6. AH interpretation preview
+# 6. AH preview
 # ============================================================
 
 def display_ah_preview(
     home_name: str,
     away_name: str,
     text: str,
-    label: str,
 ):
     if not text.strip():
         return
@@ -1287,25 +1197,12 @@ def display_ah_preview(
     try:
         rows = parse_hkjc_ah(
             text,
-            label,
+            "HKJC AH",
         )
     except Exception:
         return
 
-    if not rows:
-        return
-
     preview_lines = []
-
-    home_display = (
-        home_name.strip()
-        or "HOME"
-    )
-
-    away_display = (
-        away_name.strip()
-        or "AWAY"
-    )
 
     for row in rows:
         home_price = (
@@ -1322,29 +1219,34 @@ def display_ah_preview(
 
         preview_lines.append(
             "<b>"
-            + html_escape(home_display)
+            + html_escape(
+                home_name or "HOME"
+            )
             + f" {row['line']:+g}"
             + "</b>"
             + f" @ {home_price}"
             + " &nbsp; / &nbsp; "
             + "<b>"
-            + html_escape(away_display)
+            + html_escape(
+                away_name or "AWAY"
+            )
             + f" {-row['line']:+g}"
             + "</b>"
             + f" @ {away_price}"
         )
 
-    st.markdown(
-        """
-        <div class="ah-preview">
-            <b>⚠️ AH interpretation preview</b><br>
-            The first number is always the handicap
-            applied to the HOME team.<br><br>
-        """
-        + "<br>".join(preview_lines)
-        + "</div>",
-        unsafe_allow_html=True,
-    )
+    if preview_lines:
+        st.markdown(
+            """
+            <div class="ah-preview">
+                <b>⚠️ AH interpretation preview</b><br>
+                The first number is always applied
+                to the HOME team.<br><br>
+            """
+            + "<br>".join(preview_lines)
+            + "</div>",
+            unsafe_allow_html=True,
+        )
 
 
 # ============================================================
@@ -1373,7 +1275,6 @@ def official_dataframe(
                     probability_value(
                         item,
                         "hit",
-                        "minimum",
                     )
                 )
             ),
@@ -1386,12 +1287,11 @@ def official_dataframe(
                     )
                 )
             ),
-            "Conservative non-loss": (
+            "Non-loss": (
                 format_probability(
                     probability_value(
                         item,
                         "nonloss",
-                        "minimum",
                     )
                 )
             ),
@@ -1404,18 +1304,21 @@ def official_dataframe(
                     )
                 )
             ),
-            "Fair odds max": format_odds(
-                summary_value(
-                    item,
-                    "fair_odds",
-                    "maximum",
+            "Fair odds max": (
+                format_odds(
+                    summary_value(
+                        item,
+                        "fair_odds",
+                        "maximum",
+                    )
                 )
             ),
-            "EV minimum": format_ev(
-                summary_value(
-                    item,
-                    "expected_return",
-                    "minimum",
+            "EV minimum": (
+                format_ev(
+                    summary_value(
+                        item,
+                        "expected_return",
+                    )
                 )
             ),
             "Price": item.get(
@@ -1454,7 +1357,7 @@ def reference_status(
         "RANKED_OFFICIAL_PICK"
         in official_reasons
     ):
-        return "⚔️ CONTRADICTORY"
+        return "⚔️ ALTERNATIVE / CONFLICT"
 
     if (
         "MAXIMUM_RECOMMENDATIONS_REACHED"
@@ -1471,14 +1374,12 @@ def reference_status(
 def conflict_text(
     candidate: Dict[str, Any],
 ) -> str:
-    conflicts = candidate.get(
-        "conflicts_with",
-        [],
-    )
-
     labels = []
 
-    for conflict in conflicts:
+    for conflict in candidate.get(
+        "conflicts_with",
+        [],
+    ):
         label = conflict.get(
             "selected_label"
         )
@@ -1527,7 +1428,6 @@ def all_lines_dataframe(
                     probability_value(
                         candidate,
                         "hit",
-                        "minimum",
                     )
                 )
             ),
@@ -1540,12 +1440,11 @@ def all_lines_dataframe(
                     )
                 )
             ),
-            "Conservative non-loss": (
+            "Non-loss": (
                 format_probability(
                     probability_value(
                         candidate,
                         "nonloss",
-                        "minimum",
                     )
                 )
             ),
@@ -1558,25 +1457,20 @@ def all_lines_dataframe(
                     )
                 )
             ),
-            "Fair odds max": format_odds(
-                summary_value(
-                    candidate,
-                    "fair_odds",
-                    "maximum",
-                )
-            ),
-            "EV minimum": format_ev(
-                summary_value(
-                    candidate,
-                    "expected_return",
-                    "minimum",
+            "Fair odds": (
+                format_odds(
+                    summary_value(
+                        candidate,
+                        "fair_odds",
+                        "maximum",
+                    )
                 )
             ),
             "Price": candidate.get(
                 "price_status"
             ),
-            "Conflicts with": conflict_text(
-                candidate
+            "Conflicts with": (
+                conflict_text(candidate)
             ),
             "Reason": ", ".join(reasons),
         })
@@ -1591,44 +1485,37 @@ def all_lines_dataframe(
 def display_price_status(
     recommendation: Dict[str, Any],
 ):
-    price_status = recommendation.get(
+    status = recommendation.get(
         "price_status",
         "UNKNOWN",
     )
 
-    if price_status == "FAIR_OR_BETTER":
-        st.markdown(
-            """
-            <div class="official-banner">
-                💎 Price audit: fair or better
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+    if status == "FAIR_OR_BETTER":
+        class_name = "official-banner"
+        message = "💎 Price audit: fair or better"
 
-    elif price_status in {
+    elif status in {
         "POOR_PRICE",
         "SEVERELY_UNDERPAID",
     }:
-        st.markdown(
-            f"""
-            <div class="danger-banner">
-                ⚠️ Price audit: {html_escape(price_status)}
-                — this does not change hit-first ranking.
-            </div>
-            """,
-            unsafe_allow_html=True,
+        class_name = "danger-banner"
+        message = (
+            f"⚠️ Price audit: {status}. "
+            "Hit-first rank remains unchanged."
         )
 
     else:
-        st.markdown(
-            f"""
-            <div class="reference-banner">
-                Price audit: {html_escape(price_status)}
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        class_name = "reference-banner"
+        message = f"Price audit: {status}"
+
+    st.markdown(
+        f"""
+        <div class="{class_name}">
+            {html_escape(message)}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def display_official_recommendation(
@@ -1636,7 +1523,7 @@ def display_official_recommendation(
 ):
     rank = recommendation.get(
         "rank",
-        "?"
+        "?",
     )
 
     with st.container(border=True):
@@ -1666,13 +1553,7 @@ def display_official_recommendation(
                 probability_value(
                     recommendation,
                     "hit",
-                    "minimum",
                 )
-            ),
-            help=(
-                "Lowest positive-return probability "
-                "across valid target-line-out "
-                "scenarios."
             ),
         )
 
@@ -1693,7 +1574,6 @@ def display_official_recommendation(
                 probability_value(
                     recommendation,
                     "nonloss",
-                    "minimum",
                 )
             ),
         )
@@ -1739,12 +1619,7 @@ def display_official_recommendation(
                 summary_value(
                     recommendation,
                     "expected_return",
-                    "minimum",
                 )
-            ),
-            help=(
-                "Price audit only. EV is not "
-                "used to rank official picks."
             ),
         )
 
@@ -1753,17 +1628,9 @@ def display_official_recommendation(
             format_percentage_points(
                 summary_value(
                     recommendation,
-                    (
-                        "fair_probability_"
-                        "discrepancy"
-                    ),
+                    "fair_probability_discrepancy",
                     "median",
                 )
-            ),
-            help=(
-                "Target-line-out probability minus "
-                "the direct de-vigged sharp-market "
-                "probability."
             ),
         )
 
@@ -1771,12 +1638,14 @@ def display_official_recommendation(
             recommendation
         )
 
-        detail_tab, scenario_tab = st.tabs([
-            "Settlement details",
-            "Target-line-out audit",
-        ])
+        settlement_tab, scenario_tab = (
+            st.tabs([
+                "Settlement details",
+                "Target-line-out audit",
+            ])
+        )
 
-        with detail_tab:
+        with settlement_tab:
             rows = []
 
             labels = {
@@ -1823,13 +1692,13 @@ def display_official_recommendation(
             )
 
         with scenario_tab:
-            scenario_rows = []
+            rows = []
 
             for scenario in recommendation.get(
                 "scenarios",
                 [],
             ):
-                scenario_rows.append({
+                rows.append({
                     "Source": scenario.get(
                         "source_title"
                     ),
@@ -1842,13 +1711,11 @@ def display_official_recommendation(
                     "Excluded": scenario.get(
                         "excluded_group"
                     ),
-                    "Hit": (
-                        format_probability(
-                            scenario.get(
-                                "hit_probability"
-                            ),
-                            2,
-                        )
+                    "Hit": format_probability(
+                        scenario.get(
+                            "hit_probability"
+                        ),
+                        2,
                     ),
                     "Non-loss": (
                         format_probability(
@@ -1878,23 +1745,11 @@ def display_official_recommendation(
                     ),
                 })
 
-            if scenario_rows:
+            if rows:
                 st.dataframe(
-                    pd.DataFrame(
-                        scenario_rows
-                    ),
+                    pd.DataFrame(rows),
                     use_container_width=True,
                     hide_index=True,
-                )
-
-            if recommendation.get(
-                "scenario_errors"
-            ):
-                st.write("Scenario errors")
-                st.json(
-                    recommendation[
-                        "scenario_errors"
-                    ]
                 )
 
 
@@ -1915,7 +1770,8 @@ def display_correct_scores(
         return
 
     st.markdown(
-        '<div class="section-label">High-risk reference</div>',
+        '<div class="section-label">'
+        'High-risk reference</div>',
         unsafe_allow_html=True,
     )
 
@@ -1924,16 +1780,11 @@ def display_correct_scores(
     st.warning(
         section.get(
             "warning",
-            (
-                "Correct scores have much lower "
-                "probabilities than main markets."
-            ),
+            "Correct scores are high risk.",
         )
     )
 
-    columns = st.columns(
-        len(scores)
-    )
+    columns = st.columns(len(scores))
 
     for column, score in zip(
         columns,
@@ -1949,7 +1800,9 @@ def display_correct_scores(
                 f"""
                 <div class="score-card">
                     <div class="score-value">
-                        {html_escape(score.get("score", "—"))}
+                        {html_escape(
+                            score.get("score", "—")
+                        )}
                     </div>
                     <div class="score-probability">
                         保守概率
@@ -1959,17 +1812,19 @@ def display_correct_scores(
                         )}
                     </div>
                     <div style="
-                        color: rgba(255,255,255,0.55);
-                        margin-top: 0.35rem;
+                        color:rgba(255,255,255,.55);
+                        margin-top:.35rem;
                     ">
-                        中位概率
+                        中位
                         {format_probability(
                             probability.get("median"),
                             2
                         )}
                         · Fair
                         {format_odds(
-                            score.get("central_fair_odds")
+                            score.get(
+                                "central_fair_odds"
+                            )
                         )}
                     </div>
                 </div>
@@ -1995,8 +1850,9 @@ def display_correct_scores(
         )
     )
 
+
 # ============================================================
-# PORTAL PUBLISHING CENTRE
+# 9. Portal Publishing Centre
 # ============================================================
 
 def display_publishing_centre(
@@ -2005,11 +1861,8 @@ def display_publishing_centre(
     st.divider()
 
     st.markdown(
-        """
-        <div class="section-label">
-            Client Portal Publishing
-        </div>
-        """,
+        '<div class="section-label">'
+        'Client Portal Publishing</div>',
         unsafe_allow_html=True,
     )
 
@@ -2017,10 +1870,12 @@ def display_publishing_centre(
 
     st.markdown(
         """
-        <div class="glass-card">
-            Select what clients can see, assign tiers,
-            edit commentary, and publish directly to
-            the VIP Match Centre.
+        <div class="portal-banner">
+            Select the content your clients can see.
+            Edit the title, tier, stars, 重心 status
+            and commentary before publishing.
+            Republishing the same match updates its
+            existing rows instead of creating duplicates.
         </div>
         """,
         unsafe_allow_html=True,
@@ -2032,8 +1887,7 @@ def display_publishing_centre(
 
     if not catalogue:
         st.warning(
-            "No recommendation or correct-score "
-            "data are available to publish."
+            "No items are available to publish."
         )
         return
 
@@ -2041,65 +1895,58 @@ def display_publishing_centre(
         output
     )
 
-    match = output.get(
-        "match",
-        {},
-    )
-
     st.caption(
-        f"Portal Match ID: `{match_id}`"
+        f"Stable Portal Match ID: `{match_id}`"
     )
-
-    # --------------------------------------------------------
-    # Match presentation
-    # --------------------------------------------------------
 
     with st.container(border=True):
         st.subheader("⚽ Match presentation")
 
-        match_status = st.selectbox(
-            "Portal status",
-            options=[
-                "published",
-                "draft",
-            ],
-            index=0,
-            key=f"portal_status_{match_id}",
-            help=(
-                "Published matches appear in the "
-                "client portal. Draft matches remain "
-                "hidden."
-            ),
-        )
+        first, second = st.columns(2)
 
-        default_direction = (
-            publisher.model_direction_text(
-                output
+        with first:
+            match_status = st.selectbox(
+                "Portal status",
+                options=[
+                    "published",
+                    "draft",
+                ],
+                index=0,
+                key=(
+                    f"portal_status_"
+                    f"{match_id}"
+                ),
             )
-        )
+
+        with second:
+            st.text_input(
+                "Match ID",
+                value=match_id,
+                disabled=True,
+                key=(
+                    f"portal_match_id_"
+                    f"{match_id}"
+                ),
+            )
 
         model_direction = st.text_input(
             "Model direction",
-            value=default_direction,
+            value=(
+                publisher
+                .model_direction_text(output)
+            ),
             key=(
                 f"portal_direction_"
                 f"{match_id}"
             ),
-            help=(
-                "Short direction shown on the "
-                "match card."
-            ),
-        )
-
-        default_summary = (
-            publisher.model_summary_text(
-                output
-            )
         )
 
         model_summary = st.text_area(
             "Client match summary",
-            value=default_summary,
+            value=(
+                publisher
+                .model_summary_text(output)
+            ),
             height=110,
             key=(
                 f"portal_summary_"
@@ -2107,41 +1954,43 @@ def display_publishing_centre(
             ),
         )
 
-        st.info(
-            "Top score reference: "
-            + (
-                publisher.top_scores_text(
-                    output
-                )
-                or "Not available"
+        top_scores = (
+            publisher.top_scores_text(
+                output
             )
         )
 
-    # --------------------------------------------------------
-    # Publication editor
-    # --------------------------------------------------------
+        st.info(
+            "Top score reference: "
+            + (
+                top_scores
+                or "Not available"
+            )
+        )
 
     editor_df = pd.DataFrame(
         catalogue
     )
 
-    for column in [
+    numeric_columns = [
+        "rank",
         "odds",
         "conservative_hit",
         "median_hit",
-    ]:
-        if column in editor_df.columns:
-            editor_df[column] = (
-                pd.to_numeric(
-                    editor_df[column],
-                    errors="coerce",
-                )
+        "stars",
+    ]
+
+    for column in numeric_columns:
+        if column in editor_df:
+            editor_df[column] = pd.to_numeric(
+                editor_df[column],
+                errors="coerce",
             )
 
-    st.subheader("🎛️ Select client content")
+    st.subheader("🎛️ Client content editor")
 
     st.caption(
-        "Official picks are selected automatically. "
+        "Official picks are selected by default. "
         "You may also publish alternatives and 波膽."
     )
 
@@ -2161,54 +2010,62 @@ def display_publishing_centre(
             "status",
         ],
         column_config={
-            # Internal metadata stays hidden.
             "source_type": None,
             "source_id": None,
 
-            "publish": st.column_config.CheckboxColumn(
-                "Publish",
-                help=(
-                    "Tick to display this item "
-                    "in the client portal."
-                ),
-                default=False,
+            "publish": (
+                st.column_config.CheckboxColumn(
+                    "Publish",
+                    default=False,
+                    width="small",
+                )
             ),
 
-            "tier": st.column_config.SelectboxColumn(
-                "Client tier",
-                options=[
-                    "OFFICIAL",
-                    "ALTERNATIVE",
-                    "CORRECT_SCORE",
-                ],
-                required=True,
-                width="medium",
+            "tier": (
+                st.column_config.SelectboxColumn(
+                    "Client tier",
+                    options=[
+                        "OFFICIAL",
+                        "ALTERNATIVE",
+                        "CORRECT_SCORE",
+                    ],
+                    required=True,
+                    width="medium",
+                )
             ),
 
-            "rank": st.column_config.NumberColumn(
-                "Rank",
-                min_value=0,
-                max_value=99,
-                step=1,
-                format="%d",
-                width="small",
+            "rank": (
+                st.column_config.NumberColumn(
+                    "Rank",
+                    min_value=0,
+                    max_value=99,
+                    step=1,
+                    format="%d",
+                    width="small",
+                )
             ),
 
-            "title": st.column_config.TextColumn(
-                "Client title",
-                required=True,
-                width="large",
+            "title": (
+                st.column_config.TextColumn(
+                    "Client title",
+                    required=True,
+                    width="large",
+                )
             ),
 
-            "market": st.column_config.TextColumn(
-                "Market",
-                width="small",
+            "market": (
+                st.column_config.TextColumn(
+                    "Market",
+                    width="small",
+                )
             ),
 
-            "odds": st.column_config.NumberColumn(
-                "Odds",
-                format="%.3f",
-                width="small",
+            "odds": (
+                st.column_config.NumberColumn(
+                    "Odds",
+                    format="%.3f",
+                    width="small",
+                )
             ),
 
             "conservative_hit": (
@@ -2227,23 +2084,20 @@ def display_publishing_centre(
                 )
             ),
 
-            "stars": st.column_config.NumberColumn(
-                "Stars",
-                help="Client-facing confidence stars.",
-                min_value=1,
-                max_value=5,
-                step=1,
-                format="%d ⭐",
-                width="small",
+            "stars": (
+                st.column_config.NumberColumn(
+                    "Stars",
+                    min_value=1,
+                    max_value=5,
+                    step=1,
+                    format="%d",
+                    width="small",
+                )
             ),
 
             "is_heavy": (
                 st.column_config.CheckboxColumn(
                     "🔥 重心",
-                    help=(
-                        "Mark as a highlighted "
-                        "heavy recommendation."
-                    ),
                     default=False,
                     width="small",
                 )
@@ -2252,73 +2106,90 @@ def display_publishing_centre(
             "commentary": (
                 st.column_config.TextColumn(
                     "雨姐短評",
-                    help=(
-                        "Editable client-facing "
-                        "commentary."
-                    ),
                     width="large",
                 )
             ),
 
-            "status": st.column_config.TextColumn(
-                "Ultra status",
-                width="medium",
+            "status": (
+                st.column_config.TextColumn(
+                    "Ultra status",
+                    width="medium",
+                )
             ),
         },
     )
 
-    selected_count = int(
+    publish_mask = (
         edited_df["publish"]
         .fillna(False)
         .astype(bool)
-        .sum()
     )
 
-    first, second, third = st.columns(3)
+    selected_count = int(
+        publish_mask.sum()
+    )
+
+    official_count = int(
+        (
+            publish_mask
+            & (
+                edited_df["tier"]
+                == "OFFICIAL"
+            )
+        ).sum()
+    )
+
+    alternative_count = int(
+        (
+            publish_mask
+            & (
+                edited_df["tier"]
+                == "ALTERNATIVE"
+            )
+        ).sum()
+    )
+
+    score_count = int(
+        (
+            publish_mask
+            & (
+                edited_df["tier"]
+                == "CORRECT_SCORE"
+            )
+        ).sum()
+    )
+
+    first, second, third, fourth = (
+        st.columns(4)
+    )
 
     first.metric(
-        "Selected items",
+        "Selected",
         selected_count,
     )
 
     second.metric(
-        "Official selected",
-        int(
-            (
-                edited_df["publish"]
-                .fillna(False)
-                .astype(bool)
-                & (
-                    edited_df["tier"]
-                    == "OFFICIAL"
-                )
-            ).sum()
-        ),
+        "Official",
+        official_count,
     )
 
     third.metric(
-        "Alternatives selected",
-        int(
-            (
-                edited_df["publish"]
-                .fillna(False)
-                .astype(bool)
-                & (
-                    edited_df["tier"]
-                    == "ALTERNATIVE"
-                )
-            ).sum()
-        ),
+        "Alternatives",
+        alternative_count,
     )
 
-    # --------------------------------------------------------
-    # Confirmation and publishing
-    # --------------------------------------------------------
+    fourth.metric(
+        "波膽",
+        score_count,
+    )
 
     confirm_publish = st.checkbox(
-        "I have checked the titles, tiers, "
-        "commentary and handicap directions.",
-        key=f"portal_confirm_{match_id}",
+        "I have checked all titles, tiers, "
+        "odds, commentary and handicap directions.",
+        key=(
+            f"portal_confirm_"
+            f"{match_id}"
+        ),
     )
 
     publish_clicked = st.button(
@@ -2329,7 +2200,10 @@ def display_publishing_centre(
             not confirm_publish
             or selected_count == 0
         ),
-        key=f"portal_publish_{match_id}",
+        key=(
+            f"portal_publish_"
+            f"{match_id}"
+        ),
     )
 
     if publish_clicked:
@@ -2346,10 +2220,13 @@ def display_publishing_centre(
             )
 
             bundle = (
-                publisher.build_publish_bundle(
+                publisher
+                .build_publish_bundle(
                     output=output,
                     editor_rows=editor_rows,
-                    match_status=match_status,
+                    match_status=(
+                        match_status
+                    ),
                     model_direction=(
                         model_direction
                     ),
@@ -2360,30 +2237,32 @@ def display_publishing_centre(
             )
 
             with st.spinner(
-                "Publishing to the VIP Portal..."
+                "Publishing to VIP Portal..."
             ):
-                result = publisher.publish_bundle(
-                    api_url=(
-                        st.secrets[
-                            "portal_api"
-                        ]["url"]
-                    ),
-                    api_token=(
-                        st.secrets[
-                            "portal_api"
-                        ]["token"]
-                    ),
-                    bundle=bundle,
+                result = (
+                    publisher.publish_bundle(
+                        api_url=(
+                            st.secrets[
+                                "portal_api"
+                            ]["url"]
+                        ),
+                        api_token=(
+                            st.secrets[
+                                "portal_api"
+                            ]["token"]
+                        ),
+                        bundle=bundle,
+                    )
                 )
-
-            st.success(
-                "✅ Match and recommendations "
-                "published successfully."
-            )
 
             st.session_state[
                 "last_portal_publish_result"
             ] = result
+
+            st.success(
+                "✅ Match and selected content "
+                "published successfully."
+            )
 
             st.json(result)
 
@@ -2392,67 +2271,14 @@ def display_publishing_centre(
                 f"Publication failed: {error}"
             )
             st.exception(error)
+
+
 # ============================================================
-# 9. Sidebar
+# 10. Sidebar
 # ============================================================
 
 with st.sidebar:
     st.markdown("## 🛡️ Aegis Ultra")
-
-    st.caption(
-        f"Command Center · V{APP_VERSION}"
-    )
-
-    # ...existing sidebar code...
-
-    if st.button(
-        "🗑️ Clear current analysis",
-        use_container_width=True,
-    ):
-        for key in [
-            "ultra_result",
-            "ultra_input",
-            "ultra_analysis_hash",
-        ]:
-            st.session_state.pop(key, None)
-
-        st.success("Current analysis cleared.")
-
-    st.markdown("---")
-
-    # NEW CONNECTION TEST
-    if st.button(
-        "🔌 Test Portal Connection",
-        use_container_width=True,
-    ):
-        try:
-            response = requests.post(
-    st.secrets["portal_api"]["url"],
-    json={
-        "token": st.secrets[
-            "portal_api"
-        ]["token"],
-        "action": "ping",
-    },
-    timeout=20,
-)
-
-            response.raise_for_status()
-            result = response.json()
-
-            if result.get("ok"):
-                st.success(
-                    "Portal API connected securely."
-                )
-            else:
-                st.error(
-                    f"API rejected request: {result}"
-                )
-
-        except Exception as error:
-            st.error(
-                f"Connection failed: {error}"
-            )
 
     st.caption(
         f"Command Center · V{APP_VERSION}"
@@ -2463,30 +2289,78 @@ with st.sidebar:
         "Contradiction-safe official picks"
     )
 
+    if st.button(
+        "🗑️ Clear current analysis",
+        key="sidebar_clear_analysis",
+        use_container_width=True,
+    ):
+        for state_key in [
+            "ultra_result",
+            "ultra_input",
+            "ultra_analysis_hash",
+            "last_portal_publish_result",
+        ]:
+            st.session_state.pop(
+                state_key,
+                None,
+            )
+
+        st.success(
+            "Current analysis cleared."
+        )
+
     st.markdown("---")
 
+    if st.button(
+        "🔌 Test Portal Connection",
+        key="sidebar_test_portal",
+        use_container_width=True,
+    ):
+        try:
+            response = requests.post(
+                st.secrets[
+                    "portal_api"
+                ]["url"],
+                json={
+                    "token": (
+                        st.secrets[
+                            "portal_api"
+                        ]["token"]
+                    ),
+                    "action": "ping",
+                },
+                timeout=20,
+            )
+
+            response.raise_for_status()
+            result = response.json()
+
+            if result.get("ok"):
+                st.success(
+                    "Portal API connected securely."
+                )
+            else:
+                st.error(
+                    f"API rejected request: "
+                    f"{result}"
+                )
+
+        except Exception as error:
+            st.error(
+                f"Connection failed: {error}"
+            )
+
+    st.markdown("---")
     st.markdown("### Engine policy")
+    st.write("• No historical team data")
+    st.write("• No arbitrary model weights")
+    st.write("• No Kelly ranking")
+    st.write("• EV is price audit only")
+    st.write("• All entered lines remain visible")
 
-    st.write(
-        "• No historical team data"
-    )
-    st.write(
-        "• No arbitrary model weights"
-    )
-    st.write(
-        "• No Kelly ranking"
-    )
-    st.write(
-        "• EV is price audit only"
-    )
-    st.write(
-        "• All entered lines remain visible"
-    )
-
-    st.markdown("---")
 
 # ============================================================
-# 10. Input interface
+# 11. Input interface
 # ============================================================
 
 input_mode = st.radio(
@@ -2497,18 +2371,20 @@ input_mode = st.radio(
         "📁 Upload JSON",
     ],
     horizontal=True,
+    key="ultra_input_mode",
 )
 
 input_to_run = None
 
 
 # ============================================================
-# 11. Manual input
+# 12. Manual entry
 # ============================================================
 
 if input_mode == "🎛️ Manual entry":
     st.markdown(
-        '<div class="section-label">Match information</div>',
+        '<div class="section-label">'
+        'Match information</div>',
         unsafe_allow_html=True,
     )
 
@@ -2557,7 +2433,8 @@ if input_mode == "🎛️ Manual entry":
         )
 
     st.markdown(
-        '<div class="section-label">Sharp market</div>',
+        '<div class="section-label">'
+        'Sharp market</div>',
         unsafe_allow_html=True,
     )
 
@@ -2599,10 +2476,6 @@ if input_mode == "🎛️ Manual entry":
                 ),
                 height=230,
                 key="ultra_primary_ah",
-                help=(
-                    "The line is always the handicap "
-                    "applied to the HOME team."
-                ),
             )
 
         with second:
@@ -2612,8 +2485,7 @@ if input_mode == "🎛️ Manual entry":
                     "line OVER_odds UNDER_odds\n"
                     "2.00 1.75 2.15\n"
                     "2.25 2.02 1.88\n"
-                    "2.50 2.35 1.68\n"
-                    "2.75 2.70 1.48"
+                    "2.50 2.35 1.68"
                 ),
                 height=230,
                 key="ultra_primary_ou",
@@ -2648,7 +2520,7 @@ if input_mode == "🎛️ Manual entry":
                 )
 
             second_1x2 = st.text_input(
-                "Second 1X2 — Home / Draw / Away",
+                "Second 1X2",
                 placeholder="2.18 3.55 3.45",
                 key="ultra_second_1x2",
             )
@@ -2658,24 +2530,14 @@ if input_mode == "🎛️ Manual entry":
             with first:
                 second_ah = st.text_area(
                     "Second AH ladder",
-                    placeholder=(
-                        "HOME_line HOME_odds AWAY_odds\n"
-                        "0.00 1.66 2.28\n"
-                        "-0.25 1.96 1.94"
-                    ),
-                    height=210,
+                    height=200,
                     key="ultra_second_ah",
                 )
 
             with second:
                 second_ou = st.text_area(
                     "Second O/U ladder",
-                    placeholder=(
-                        "line OVER_odds UNDER_odds\n"
-                        "2.25 2.00 1.90\n"
-                        "2.50 2.32 1.70"
-                    ),
-                    height=210,
+                    height=200,
                     key="ultra_second_ou",
                 )
 
@@ -2687,7 +2549,8 @@ if input_mode == "🎛️ Manual entry":
         second_ou = ""
 
     st.markdown(
-        '<div class="section-label">HKJC candidates</div>',
+        '<div class="section-label">'
+        'HKJC candidates</div>',
         unsafe_allow_html=True,
     )
 
@@ -2695,9 +2558,7 @@ if input_mode == "🎛️ Manual entry":
         st.subheader("🏇 HKJC market")
 
         st.caption(
-            "Use X or - for unavailable prices. "
-            "All entered lines will remain in the "
-            "private reference summary."
+            "Use X or - for unavailable prices."
         )
 
         hkjc_1x2 = st.text_input(
@@ -2714,15 +2575,10 @@ if input_mode == "🎛️ Manual entry":
                 placeholder=(
                     "HOME_line HOME_odds AWAY_odds\n"
                     "+0.25 1.86 2.02\n"
-                    "0.00 1.65 2.30\n"
-                    "-0.25 2.05 1.85"
+                    "0.00 1.65 2.30"
                 ),
                 height=230,
                 key="ultra_hkjc_ah",
-                help=(
-                    "Example: HOME +0.25 means the "
-                    "away team is -0.25."
-                ),
             )
 
         with second:
@@ -2731,22 +2587,21 @@ if input_mode == "🎛️ Manual entry":
                 placeholder=(
                     "line OVER_odds UNDER_odds\n"
                     "2.50 2.42 1.62\n"
-                    "3.25 2.10 1.72\n"
-                    "3.50 2.35 1.52"
+                    "3.25 2.10 1.72"
                 ),
                 height=230,
                 key="ultra_hkjc_ou",
             )
 
         display_ah_preview(
-            home_name=home_name,
-            away_name=away_name,
-            text=hkjc_ah,
-            label="HKJC AH",
+            home_name,
+            away_name,
+            hkjc_ah,
         )
 
     st.markdown(
-        '<div class="section-label">Official pick policy</div>',
+        '<div class="section-label">'
+        'Official pick policy</div>',
         unsafe_allow_html=True,
     )
 
@@ -2769,10 +2624,9 @@ if input_mode == "🎛️ Manual entry":
                     "Maximum official picks",
                     options=[1, 2, 3, 4, 5],
                     index=2,
-                    key="ultra_max_recommendations",
-                    help=(
-                        "This is a ceiling, not a "
-                        "number the engine must fill."
+                    key=(
+                        "ultra_max_"
+                        "recommendations"
                     ),
                 )
             )
@@ -2787,32 +2641,35 @@ if input_mode == "🎛️ Manual entry":
                     step=1.0,
                     format="%.1f",
                     key="ultra_min_hit_pct",
-                    help=(
-                        "Lines below this conservative "
-                        "hit probability remain in the "
-                        "reference summary but are not "
-                        "official recommendations."
-                    ),
                 )
             )
 
         first, second = st.columns(2)
 
         with first:
-            maximum_odds_enabled = st.checkbox(
-                "Set maximum HKJC odds",
-                value=False,
-                key="ultra_enable_max_odds",
+            maximum_odds_enabled = (
+                st.checkbox(
+                    "Set maximum HKJC odds",
+                    key=(
+                        "ultra_enable_"
+                        "max_odds"
+                    ),
+                )
             )
 
             if maximum_odds_enabled:
-                maximum_odds = st.number_input(
-                    "Maximum HKJC odds",
-                    min_value=1.01,
-                    value=5.00,
-                    step=0.10,
-                    format="%.2f",
-                    key="ultra_maximum_odds",
+                maximum_odds = (
+                    st.number_input(
+                        "Maximum HKJC odds",
+                        min_value=1.01,
+                        value=5.00,
+                        step=0.10,
+                        format="%.2f",
+                        key=(
+                            "ultra_maximum_"
+                            "odds"
+                        ),
+                    )
                 )
             else:
                 maximum_odds = 5.00
@@ -2838,20 +2695,12 @@ if input_mode == "🎛️ Manual entry":
                 "POWER",
             ],
             key="ultra_devig_methods",
-            help=(
-                "The methods remain separate. "
-                "Ultra uses the conservative range."
-            ),
         )
 
         ev_floor_enabled = st.checkbox(
             "Reject severely underpaid prices",
             value=False,
             key="ultra_enable_ev_floor",
-            help=(
-                "EV never controls ranking. This "
-                "is an optional rejection gate only."
-            ),
         )
 
         if ev_floor_enabled:
@@ -2862,21 +2711,18 @@ if input_mode == "🎛️ Manual entry":
                     max_value=100.0,
                     value=-10.0,
                     step=1.0,
-                    format="%.1f",
                     key="ultra_ev_floor",
                 )
             )
         else:
             ev_rejection_floor_pct = -10.0
 
-    run_manual = st.button(
+    if st.button(
         "🚀 Launch Aegis Ultra",
         type="primary",
         use_container_width=True,
         key="ultra_manual_run",
-    )
-
-    if run_manual:
+    ):
         try:
             input_to_run = build_manual_input(
                 home_name=home_name,
@@ -2931,22 +2777,13 @@ if input_mode == "🎛️ Manual entry":
 
 
 # ============================================================
-# 12. JSON text input
+# 13. Paste JSON
 # ============================================================
 
 elif input_mode == "📋 Paste JSON":
     st.markdown(
-        '<div class="section-label">Direct JSON input</div>',
-        unsafe_allow_html=True,
-    )
-
-    st.markdown(
-        """
-        <div class="glass-card">
-            Paste an Ultra input JSON object below.
-            This is usually faster than uploading a file.
-        </div>
-        """,
+        '<div class="section-label">'
+        'Direct JSON input</div>',
         unsafe_allow_html=True,
     )
 
@@ -2954,160 +2791,94 @@ elif input_mode == "📋 Paste JSON":
         "Ultra input JSON",
         height=520,
         key="ultra_json_text",
-        placeholder="""{
-  "match": {
-    "home": "Jaro",
-    "away": "SJK",
-    "competition": "Finland Veikkausliiga"
-  },
-  "sharp_books": [
-    {
-      "key": "pinnacle",
-      "title": "Pinnacle",
-      "markets": {
-        "1X2": {
-          "home": 3.40,
-          "draw": 3.55,
-          "away": 2.05
-        },
-        "AH": [
-          {
-            "line": 0.25,
-            "home": 1.90,
-            "away": 2.00
-          }
-        ],
-        "OU": [
-          {
-            "line": 3.0,
-            "over": 1.95,
-            "under": 1.95
-          },
-          {
-            "line": 3.5,
-            "over": 2.35,
-            "under": 1.60
-          }
-        ]
-      }
-    }
-  ],
-  "hkjc_markets": [],
-  "settings": {
-    "primary_source": "pinnacle",
-    "minimum_odds": 1.5,
-    "minimum_official_hit_probability": 0.5,
-    "max_recommendations": 3,
-    "correct_score_count": 2,
-    "devig_methods": [
-      "MULTIPLICATIVE",
-      "POWER"
-    ]
-  }
-}""",
     )
 
-    run_json_text = st.button(
+    if st.button(
         "🚀 Run pasted JSON",
         type="primary",
         use_container_width=True,
         key="ultra_json_text_run",
-    )
+    ):
+        try:
+            if not json_text.strip():
+                raise ValueError(
+                    "Paste a JSON object first."
+                )
 
-    if run_json_text:
-        if not json_text.strip():
-            st.error(
-                "Paste a JSON object first."
+            input_to_run = json.loads(
+                json_text
             )
 
-        else:
-            try:
-                parsed = json.loads(
-                    json_text
+            if not isinstance(
+                input_to_run,
+                dict,
+            ):
+                raise ValueError(
+                    "JSON root must be an object."
                 )
 
-                if not isinstance(
-                    parsed,
-                    dict,
-                ):
-                    raise ValueError(
-                        "JSON root must be an object."
-                    )
-
-                input_to_run = parsed
-
-            except Exception as error:
-                st.error(
-                    f"JSON error: {error}"
-                )
-                st.exception(error)
+        except Exception as error:
+            st.error(
+                f"JSON error: {error}"
+            )
+            st.exception(error)
 
 
 # ============================================================
-# 13. JSON upload input
+# 14. Upload JSON
 # ============================================================
 
 else:
-    st.markdown(
-        '<div class="section-label">File input</div>',
-        unsafe_allow_html=True,
-    )
-
     uploaded_file = st.file_uploader(
         "Upload Ultra JSON",
         type=["json"],
+        key="ultra_json_upload",
     )
 
-    run_uploaded = st.button(
+    if st.button(
         "🚀 Run uploaded JSON",
         type="primary",
         use_container_width=True,
         key="ultra_upload_run",
-    )
+    ):
+        try:
+            if uploaded_file is None:
+                raise ValueError(
+                    "Upload a JSON file first."
+                )
 
-    if run_uploaded:
-        if uploaded_file is None:
-            st.error(
-                "Upload a JSON file first."
+            text = (
+                uploaded_file
+                .getvalue()
+                .decode("utf-8-sig")
             )
 
-        else:
-            try:
-                text = (
-                    uploaded_file
-                    .getvalue()
-                    .decode("utf-8-sig")
+            input_to_run = json.loads(text)
+
+            if not isinstance(
+                input_to_run,
+                dict,
+            ):
+                raise ValueError(
+                    "JSON root must be an object."
                 )
 
-                parsed = json.loads(text)
-
-                if not isinstance(
-                    parsed,
-                    dict,
-                ):
-                    raise ValueError(
-                        "JSON root must be an object."
-                    )
-
-                input_to_run = parsed
-
-            except Exception as error:
-                st.error(
-                    f"JSON error: {error}"
-                )
-                st.exception(error)
+        except Exception as error:
+            st.error(
+                f"JSON error: {error}"
+            )
+            st.exception(error)
 
 
 # ============================================================
-# 14. Execute engine
+# 15. Execute
 # ============================================================
 
 if input_to_run is not None:
     try:
         with st.spinner(
-            "Reconstructing the sharp market, "
-            "removing target lines and checking "
-            "official-pick compatibility..."
+            "Reconstructing sharp markets and "
+            "running target-line-out checks..."
         ):
             output = execute_engine(
                 input_to_run
@@ -3125,7 +2896,7 @@ if input_to_run is not None:
 
 
 # ============================================================
-# 15. Results
+# 16. Results
 # ============================================================
 
 if "ultra_result" in st.session_state:
@@ -3156,7 +2927,8 @@ if "ultra_result" in st.session_state:
     st.divider()
 
     st.markdown(
-        '<div class="section-label">Analysis result</div>',
+        '<div class="section-label">'
+        'Analysis result</div>',
         unsafe_allow_html=True,
     )
 
@@ -3168,14 +2940,12 @@ if "ultra_result" in st.session_state:
         )
     )
 
-    caption_parts = [
-        match.get("competition"),
-        match.get("kickoff"),
-    ]
-
     caption = " ｜ ".join(
         str(item)
-        for item in caption_parts
+        for item in [
+            match.get("competition"),
+            match.get("kickoff"),
+        ]
         if item
     )
 
@@ -3195,7 +2965,8 @@ if "ultra_result" in st.session_state:
         "Official hit floor",
         format_probability(
             settings.get(
-                "minimum_official_hit_probability"
+                "minimum_official_"
+                "hit_probability"
             )
         ),
     )
@@ -3225,15 +2996,14 @@ if "ultra_result" in st.session_state:
     )
 
     st.markdown(
-        '<div class="section-label">Official recommendations</div>',
+        '<div class="section-label">'
+        'Official recommendations</div>',
         unsafe_allow_html=True,
     )
 
     if not recommendations:
         st.warning(
-            "No line passed the official hit threshold "
-            "and compatibility rules. All lines are "
-            "still available below for reference."
+            "No line passed the official rules."
         )
 
     for recommendation in recommendations:
@@ -3246,12 +3016,8 @@ if "ultra_result" in st.session_state:
             "✅ Official recommendation summary"
         )
 
-        official_table = official_dataframe(
-            output
-        )
-
         st.dataframe(
-            official_table,
+            official_dataframe(output),
             use_container_width=True,
             hide_index=True,
         )
@@ -3259,20 +3025,20 @@ if "ultra_result" in st.session_state:
     st.divider()
 
     st.markdown(
-        '<div class="section-label">Private reference</div>',
+        '<div class="section-label">'
+        'Private reference</div>',
         unsafe_allow_html=True,
     )
 
     st.header("📋 All-line reference summary")
 
     st.caption(
-        "Every HKJC line entered is retained here. "
-        "Lines below the hit threshold or blocked for "
-        "contradiction remain visible for your own review."
+        "All entered HKJC lines are retained "
+        "for private reference."
     )
 
-    all_lines_table = all_lines_dataframe(
-        output
+    all_lines_table = (
+        all_lines_dataframe(output)
     )
 
     if not all_lines_table.empty:
@@ -3313,37 +3079,37 @@ if "ultra_result" in st.session_state:
                     ", ".join(reasons)
                 )
 
-            conflicts = candidate.get(
-                "conflicts_with",
-                [],
-            )
+            if candidate.get(
+                "conflicts_with"
+            ):
+                st.json(
+                    candidate[
+                        "conflicts_with"
+                    ]
+                )
 
-            if conflicts:
-                st.json(conflicts)
+    display_correct_scores(output)
+
+    # VIP publishing centre.
+    display_publishing_centre(output)
 
     st.divider()
 
-display_correct_scores(output)
-
-display_publishing_centre(output)
-
-st.divider()
-
-runtime = output.get(
+    runtime = output.get(
         "runtime",
         {},
     )
 
-first, second, third = st.columns(3)
+    first, second, third = st.columns(3)
 
-first.metric(
+    first.metric(
         "Runtime",
         (
             f"{runtime.get('total_seconds', 0):.2f}s"
         ),
     )
 
-second.metric(
+    second.metric(
         "Score states",
         output.get(
             "model",
@@ -3354,7 +3120,7 @@ second.metric(
         ),
     )
 
-third.metric(
+    third.metric(
         "Full scenarios",
         output.get(
             "model",
@@ -3365,11 +3131,11 @@ third.metric(
         ),
     )
 
-with st.expander(
+    with st.expander(
         "🔬 Internal audit",
         expanded=False,
     ):
-        audit_tab_1, audit_tab_2, audit_tab_3 = (
+        method_tab, model_tab, set_tab = (
             st.tabs([
                 "Methodology",
                 "Model scenarios",
@@ -3377,7 +3143,7 @@ with st.expander(
             ])
         )
 
-        with audit_tab_1:
+        with method_tab:
             st.json(
                 output.get(
                     "methodology",
@@ -3385,7 +3151,7 @@ with st.expander(
                 )
             )
 
-        with audit_tab_2:
+        with model_tab:
             st.json(
                 output.get(
                     "model",
@@ -3393,7 +3159,7 @@ with st.expander(
                 )
             )
 
-        with audit_tab_3:
+        with set_tab:
             st.json(
                 output.get(
                     "recommendation_set",
@@ -3424,6 +3190,7 @@ with st.expander(
         file_name="aegis_ultra_output.json",
         mime="application/json",
         use_container_width=True,
+        key="download_ultra_result",
     )
 
     second.download_button(
@@ -3432,4 +3199,5 @@ with st.expander(
         file_name="aegis_ultra_input.json",
         mime="application/json",
         use_container_width=True,
+        key="download_ultra_input",
     )
