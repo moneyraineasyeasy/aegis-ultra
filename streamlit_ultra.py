@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 
+import requests
+
 os.environ["ARROW_DEFAULT_MEMORY_POOL"] = "system"
 
 import hashlib
