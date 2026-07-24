@@ -3365,7 +3365,7 @@ third.metric(
         ),
     )
 
-    with st.expander(
+with st.expander(
         "🔬 Internal audit",
         expanded=False,
     ):
