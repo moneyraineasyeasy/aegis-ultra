@@ -4,6 +4,8 @@ import os
 
 import requests
 
+import aegis_ultra_engine as aegis
+
 os.environ["ARROW_DEFAULT_MEMORY_POOL"] = "system"
 
 import hashlib
