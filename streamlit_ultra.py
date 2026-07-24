@@ -3334,7 +3334,7 @@ runtime = output.get(
         {},
     )
 
-    first, second, third = st.columns(3)
+first, second, third = st.columns(3)
 
     first.metric(
         "Runtime",
