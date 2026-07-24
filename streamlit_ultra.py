@@ -2031,14 +2031,15 @@ with st.sidebar:
     ):
         try:
             response = requests.post(
-                st.secrets["portal_api"]["url"],
-                json={
-                    "token": st.secrets[
-                        "portal_api"
-                    ]["token"]
-                },
-                timeout=20,
-            )
+    st.secrets["portal_api"]["url"],
+    json={
+        "token": st.secrets[
+            "portal_api"
+        ]["token"],
+        "action": "ping",
+    },
+    timeout=20,
+)
 
             response.raise_for_status()
             result = response.json()
