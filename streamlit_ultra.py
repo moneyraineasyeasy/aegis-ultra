@@ -3343,7 +3343,7 @@ first.metric(
         ),
     )
 
-    second.metric(
+second.metric(
         "Score states",
         output.get(
             "model",
@@ -3354,7 +3354,7 @@ first.metric(
         ),
     )
 
-    third.metric(
+third.metric(
         "Full scenarios",
         output.get(
             "model",
