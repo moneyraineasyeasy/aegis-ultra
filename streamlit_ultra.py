@@ -3336,7 +3336,7 @@ runtime = output.get(
 
 first, second, third = st.columns(3)
 
-    first.metric(
+first.metric(
         "Runtime",
         (
             f"{runtime.get('total_seconds', 0):.2f}s"
