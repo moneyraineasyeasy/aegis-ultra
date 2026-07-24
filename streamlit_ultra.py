@@ -2007,6 +2007,60 @@ with st.sidebar:
         f"Command Center · V{APP_VERSION}"
     )
 
+    # ...existing sidebar code...
+
+    if st.button(
+        "🗑️ Clear current analysis",
+        use_container_width=True,
+    ):
+        for key in [
+            "ultra_result",
+            "ultra_input",
+            "ultra_analysis_hash",
+        ]:
+            st.session_state.pop(key, None)
+
+        st.success("Current analysis cleared.")
+
+    st.markdown("---")
+
+    # NEW CONNECTION TEST
+    if st.button(
+        "🔌 Test Portal Connection",
+        use_container_width=True,
+    ):
+        try:
+            response = requests.post(
+                st.secrets["portal_api"]["url"],
+                json={
+                    "token": st.secrets[
+                        "portal_api"
+                    ]["token"]
+                },
+                timeout=20,
+            )
+
+            response.raise_for_status()
+            result = response.json()
+
+            if result.get("ok"):
+                st.success(
+                    "Portal API connected securely."
+                )
+            else:
+                st.error(
+                    f"API rejected request: {result}"
+                )
+
+        except Exception as error:
+            st.error(
+                f"Connection failed: {error}"
+            )
+
+    st.caption(
+        f"Command Center · V{APP_VERSION}"
+    )
+
     st.success(
         "Hit-first ranking\n\n"
         "Contradiction-safe official picks"
